@@ -12,7 +12,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
    * The method is used for handling errors and returning
    * response to the client
    */
-  async handle(error: unknown, ctx: HttpContext) {
+  async handle(error: unknown, ctx: HttpContext) { 
     return super.handle(error, ctx)
   }
 

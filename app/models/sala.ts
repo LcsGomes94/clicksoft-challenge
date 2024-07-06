@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column, manyToMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, ManyToMany } from '@adonisjs/lucid/types/relations'
-import Professor from './professor.js'
+import Professore from './professor.js'
 import Aluno from './aluno.js'
 
 export default class Sala extends BaseModel {
@@ -17,14 +17,17 @@ export default class Sala extends BaseModel {
   @column()
   declare disponibilidade: boolean
 
+  @column()
+  declare professorId: number
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
 
-  @belongsTo(() => Professor)
-  declare professor: BelongsTo<typeof Professor>
+  @belongsTo(() => Professore)
+  declare professor: BelongsTo<typeof Professore>
 
   @manyToMany(() => Aluno, {
     pivotTable: 'salas_alunos'
