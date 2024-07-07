@@ -9,11 +9,6 @@ export default class extends BaseSchema {
 
       table.integer('sala_id').unsigned().references('id').inTable('salas').onDelete('CASCADE')
       table.integer('aluno_id').unsigned().references('id').inTable('alunos').onDelete('CASCADE')
-
-      table.unique(['sala_id', 'aluno_id'])
-
-      table.timestamp('created_at').notNullable()
-      table.timestamp('updated_at').notNullable()
     })
   }
 

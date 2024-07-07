@@ -17,3 +17,9 @@ router.post('/salas/:id', [SalasController, 'cadastrarSala'])
 router.get('/salas/:id', [SalasController, 'buscarSala'])
 router.put('/salas/:id', [SalasController, 'atualizarSala'])
 router.delete('/salas/:id', [SalasController, 'deletarSala'])
+
+router.post('/salas/:id/matriculas', [SalasController, 'criarMatricula'])
+router.delete('/salas/:id/matriculas', [SalasController, 'cancelarMatricula'])
+
+router.get('/salas/:id/alunos', [SalasController, 'buscarAlunos'])
+router.get('/alunos/:id/salas', [AlunosController, 'buscarSalas'])

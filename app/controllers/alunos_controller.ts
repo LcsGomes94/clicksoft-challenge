@@ -49,4 +49,33 @@ export default class AlunosController {
             throw new IdNotFoundException
         }
     }
+
+    async buscarSalas({ params, response }: HttpContext) {
+        let aluno
+
+        try {
+            aluno = await Aluno.query()
+            .where('id', params.id).select('id','nome')
+            .preload('salas', (query) => { 
+                query.select('professoreId','numero')
+                .preload('professor', (query) => {
+                    query.select('nome')
+                }) 
+            }).firstOrFail()
+        } catch (e) {
+            throw e
+        }
+
+        const salasDoAluno = {
+            nome: aluno.nome,
+            salas: aluno.salas.map(sala => {
+                return {
+                    professor: sala.professor.nome,
+                    numero: sala.numero
+                }
+            })
+        }
+
+        return response.status(200).json(salasDoAluno)
+    }
 }

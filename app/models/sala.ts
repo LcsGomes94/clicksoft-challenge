@@ -17,8 +17,8 @@ export default class Sala extends BaseModel {
   @column()
   declare disponibilidade: boolean
 
-  @column()
-  declare professorId: number
+  @column({columnName: 'professor_id'})
+  declare professoreId: number
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

@@ -1,6 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
-import CapacidadeMaximaAtingida from '../exceptions/capacidade_insuficiente_exception.js'
 import IdNotFoundException from '../exceptions/id_not_found_exception.js'
+import Aluno from '../models/aluno.js'
 import Professor from '../models/professor.js'
 import Sala from '../models/sala.js'
 import { salaValidator } from '../validators/sala.js'
@@ -42,8 +42,9 @@ export default class SalasController {
         const data = request.only(['numero', 'capacidade', 'disponibilidade', 'professorId'])
 
         await sala.load('alunos')
-        if (sala.alunos.length > data.capacidade) throw new CapacidadeMaximaAtingida(sala.alunos.length)
-
+        if (sala.alunos.length > data.capacidade) {
+            return response.status(403).json({erro: `A nova capacidade é baixa de mais. O mínimo aceitável no momento é ${sala.alunos.length}.`})
+        }
         await salaValidator(params.id).validate(data)
     
         sala.merge(data)
@@ -61,5 +62,79 @@ export default class SalasController {
         } catch {
             throw new IdNotFoundException
         }
+    }
+
+    async criarMatricula({ params, request, response }: HttpContext) {
+        let sala
+        let aluno
+        const data = request.only(['alunoId', 'professorId'])
+
+        try {
+            sala = await Sala.findOrFail(params.id)
+            aluno = await Aluno.findOrFail(data.alunoId)
+        } catch {
+            throw new IdNotFoundException
+        }
+
+        if (sala.professoreId != data.professorId) {
+            return response.status(403).json({ erro: `A sala número ${sala.numero} não pertence ao professor de id ${data.professorId}.`})
+        }
+
+        if (!sala.disponibilidade) {
+            return response.status(403).json({erro: `Esta sala não está aceitando novas matrículas no momento.`})
+        }
+
+        await sala.load('alunos')
+
+        if (sala.capacidade <= sala.alunos.length) {
+            return response.status(403).json({erro: `Esta sala já está cheia.`})
+        }
+
+        if (sala.alunos.find(aluno => aluno.id == data.alunoId)) {
+            return response.status(403).json({erro: `Este aluno já está matriculado nesta classe.`})
+        }
+
+        await sala.related('alunos').attach([data.alunoId])
+        return response.status(201).json({mensagem: `O aluno ${aluno.nome} foi cadastrado na sala número ${sala.numero}.`})
+    }
+
+    async cancelarMatricula({ params, request, response }: HttpContext) {
+        let sala
+        let aluno
+        const data = request.only(['alunoId', 'professorId'])
+
+        try {
+            sala = await Sala.findOrFail(params.id)
+            aluno = await Aluno.findOrFail(data.alunoId)
+        } catch {
+            throw new IdNotFoundException
+        }
+
+        if (sala.professoreId != data.professorId) {
+            return response.status(403).json({ erro: `A sala número ${sala.numero} não pertence ao professor de id ${data.professorId}.`})
+        }
+
+        await sala.load('alunos')
+
+        if (!sala.alunos.find(aluno => aluno.id == data.alunoId)) {
+            return response.status(403).json({erro: `O aluno ${aluno.nome} não pertence à sala número ${sala.numero}.`})
+        }
+
+        sala.related('alunos').detach([data.alunoId])
+        return response.status(201).json({mensagem: `O aluno ${aluno.nome} foi removido na sala número ${sala.numero}.`})
+    }
+
+    async buscarAlunos({ params, response }: HttpContext) {
+        let sala
+
+        try {
+            sala = await Sala.findOrFail(params.id)
+        } catch {
+            throw new IdNotFoundException
+        }
+
+        await sala.load('alunos')
+
+        return response.status(201).json(sala.alunos)
     }
 }
