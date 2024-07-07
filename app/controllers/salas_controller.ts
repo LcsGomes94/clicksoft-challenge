@@ -13,9 +13,10 @@ export default class SalasController {
             throw new IdNotFoundException
         }
 
-        const data = request.only(['numero', 'capacidade', 'disponibilidade', 'professorId'])
-        data.professorId = params.id
+        const data = request.only(['numero', 'capacidade', 'disponibilidade', 'professoreId'])
         await salaValidator().validate(data)
+
+        data.professoreId = params.id
 
         const sala = await Sala.create(data)
         return response.status(201).json(sala)
@@ -32,25 +33,26 @@ export default class SalasController {
 
     async atualizarSala({ params, request, response }: HttpContext) {
         let sala
+        const data = request.only(['numero', 'capacidade', 'disponibilidade', 'professoreId'])
 
         try {
             sala = await Sala.findOrFail(params.id)
+            await Professor.findOrFail(data.professoreId)
         } catch {
             throw new IdNotFoundException
         }
 
-        const data = request.only(['numero', 'capacidade', 'disponibilidade', 'professorId'])
-
-        await sala.load('alunos')
-        if (sala.alunos.length > data.capacidade) {
-            return response.status(403).json({erro: `A nova capacidade é baixa de mais. O mínimo aceitável no momento é ${sala.alunos.length}.`})
-        }
         await salaValidator(params.id).validate(data)
+
+        const alunosCount = await sala.related('alunos').query().count('* as total')
+        if (alunosCount[0].$extras.total > data.capacidade) {
+            return response.status(403).json({erro: `A nova capacidade é baixa de mais. O mínimo aceitável no momento é ${alunosCount[0].$extras.total}.`})
+        }
     
         sala.merge(data)
         await sala.save()
     
-        return response.status(200).json(sala.$original)
+        return response.status(200).json(sala)
     }
 
     async deletarSala({ params, response }: HttpContext) {
@@ -67,7 +69,7 @@ export default class SalasController {
     async criarMatricula({ params, request, response }: HttpContext) {
         let sala
         let aluno
-        const data = request.only(['alunoId', 'professorId'])
+        const data = request.only(['alunoId', 'professoreId'])
 
         try {
             sala = await Sala.findOrFail(params.id)
@@ -76,8 +78,8 @@ export default class SalasController {
             throw new IdNotFoundException
         }
 
-        if (sala.professoreId != data.professorId) {
-            return response.status(403).json({ erro: `A sala número ${sala.numero} não pertence ao professor de id ${data.professorId}.`})
+        if (sala.professoreId != data.professoreId) {
+            return response.status(403).json({ erro: `A sala número ${sala.numero} não pertence ao professor de id ${data.professoreId}.`})
         }
 
         if (!sala.disponibilidade) {
@@ -91,7 +93,7 @@ export default class SalasController {
         }
 
         if (sala.alunos.find(aluno => aluno.id == data.alunoId)) {
-            return response.status(403).json({erro: `Este aluno já está matriculado nesta classe.`})
+            return response.status(403).json({erro: `Este aluno já está matriculado nesta sala.`})
         }
 
         await sala.related('alunos').attach([data.alunoId])
@@ -101,7 +103,7 @@ export default class SalasController {
     async cancelarMatricula({ params, request, response }: HttpContext) {
         let sala
         let aluno
-        const data = request.only(['alunoId', 'professorId'])
+        const data = request.only(['alunoId', 'professoreId'])
 
         try {
             sala = await Sala.findOrFail(params.id)
@@ -110,18 +112,17 @@ export default class SalasController {
             throw new IdNotFoundException
         }
 
-        if (sala.professoreId != data.professorId) {
-            return response.status(403).json({ erro: `A sala número ${sala.numero} não pertence ao professor de id ${data.professorId}.`})
+        if (sala.professoreId != data.professoreId) {
+            return response.status(403).json({ erro: `A sala número ${sala.numero} não pertence ao professor de id ${data.professoreId}.`})
         }
 
-        await sala.load('alunos')
-
-        if (!sala.alunos.find(aluno => aluno.id == data.alunoId)) {
+        const existe = await sala.related('alunos').query().where('alunos.id', params.id).select('id').first()
+        if (!existe) {
             return response.status(403).json({erro: `O aluno ${aluno.nome} não pertence à sala número ${sala.numero}.`})
         }
 
         sala.related('alunos').detach([data.alunoId])
-        return response.status(201).json({mensagem: `O aluno ${aluno.nome} foi removido na sala número ${sala.numero}.`})
+        return response.status(201).json(null)
     }
 
     async buscarAlunos({ params, response }: HttpContext) {

@@ -6,8 +6,7 @@ export default class IdNotFoundException extends Exception {
     ctx.response
       .status(404)
       .send({
-        message: `Um ou mais ids não foram encontrados na base de dados.`,
-        status: 404,
+        erro: `Um ou mais ids não foram encontrados na base de dados.`
       })
   }
 }

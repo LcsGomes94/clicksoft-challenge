@@ -1,5 +1,4 @@
 import vine from '@vinejs/vine'
-import Professor from '../models/professor.js'
 import { checarResultado } from './utilities.js'
 
 export const salaValidator = (id?: number) => vine.compile(
@@ -9,7 +8,7 @@ export const salaValidator = (id?: number) => vine.compile(
             return checarResultado(resultado, id)
         }),
 
-        capacidade: vine.number(),
+        capacidade: vine.number().positive(),
 
         disponibilidade: vine.boolean()
     })

@@ -62,16 +62,16 @@ export default class AlunosController {
                     query.select('nome')
                 }) 
             }).firstOrFail()
-        } catch (e) {
-            throw e
+        } catch {
+            throw new IdNotFoundException
         }
 
         const salasDoAluno = {
-            nome: aluno.nome,
+            aluno: aluno.nome,
             salas: aluno.salas.map(sala => {
                 return {
-                    professor: sala.professor.nome,
-                    numero: sala.numero
+                    sala: sala.numero,
+                    professor: sala.professor.nome
                 }
             })
         }
